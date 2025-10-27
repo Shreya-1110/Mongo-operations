@@ -1,0 +1,73 @@
+// app.js
+const express = require("express");
+const mongoose = require("mongoose");
+
+const app = express();
+app.use(express.json());
+
+// 1️⃣ Connect to MongoDB
+mongoose
+  .connect("mongodb://127.0.0.1:27017/productsDB", {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+  })
+  .then(() => console.log("✅ Connected to MongoDB"))
+  .catch((err) => console.error("❌ MongoDB connection error:", err));
+
+// 2️⃣ Define Schema and Model
+const productSchema = new mongoose.Schema({
+  name: { type: String, required: true },
+  price: { type: Number, required: true },
+  category: { type: String, required: true },
+});
+
+const Product = mongoose.model("Product", productSchema);
+
+// 3️⃣ CREATE – Add a new product
+app.post("/products", async (req, res) => {
+  try {
+    const product = new Product(req.body);
+    await product.save();
+    res.status(201).send(product);
+  } catch (err) {
+    res.status(400).send({ error: err.message });
+  }
+});
+
+// 4️⃣ READ – Get all products
+app.get("/products", async (req, res) => {
+  try {
+    const products = await Product.find();
+    res.send(products);
+  } catch (err) {
+    res.status(500).send({ error: err.message });
+  }
+});
+
+// 5️⃣ UPDATE – Update product by ID
+app.put("/products/:id", async (req, res) => {
+  try {
+    const updated = await Product.findByIdAndUpdate(req.params.id, req.body, {
+      new: true,
+      runValidators: true,
+    });
+    if (!updated) return res.status(404).send({ error: "Product not found" });
+    res.send(updated);
+  } catch (err) {
+    res.status(400).send({ error: err.message });
+  }
+});
+
+// 6️⃣ DELETE – Delete product by ID
+app.delete("/products/:id", async (req, res) => {
+  try {
+    const deleted = await Product.findByIdAndDelete(req.params.id);
+    if (!deleted) return res.status(404).send({ error: "Product not found" });
+    res.send({ message: "Product deleted successfully" });
+  } catch (err) {
+    res.status(500).send({ error: err.message });
+  }
+});
+
+// 7️⃣ Start server
+app.listen(3000, () => console.log("🚀 Server running on http://localhost:3000"));
